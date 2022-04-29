@@ -1,7 +1,7 @@
 import numpy as np 
 import cv2
 
-def aspect_distance(arr1, arr2):
+def aspect_correlation(arr1, arr2):
     h = arr1.shape[0]
     w = arr1.shape[1]
     mul = 0
@@ -35,7 +35,7 @@ def cross_correlation(img, filter, padding=True):
     for i in range(0, h):
         for j in range(0, w):  
             arr = img[i:i+filter.shape[0], j:j+filter.shape[1], :]
-            result[i][j] = aspect_distance(arr, filter)
+            result[i][j] = aspect_correlation(arr, filter)
             # result[i][j] = int(100*aspect_distance(arr, filter))
             
     return result
