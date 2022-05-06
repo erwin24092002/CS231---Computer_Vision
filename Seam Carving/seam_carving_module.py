@@ -10,9 +10,9 @@ def gen_emap (img):
     input: an image
     output: an energy map of image
     """ 
-    xgrad = ndi.convolve1d(img, np.array([1, 0, -1]), axis=1, mode='wrap')
-    ygrad = ndi.convolve1d(img, np.array([1, 0, -1]), axis=0, mode='wrap')
-    emap = np.sqrt(np.sum(xgrad**2, axis=2) + np.sum(ygrad**2, axis=2))
+    Gx = ndi.convolve1d(img, np.array([1, 0, -1]), axis=1, mode='wrap')
+    Gy = ndi.convolve1d(img, np.array([1, 0, -1]), axis=0, mode='wrap')
+    emap = np.sqrt(np.sum(Gx**2, axis=2) + np.sum(Gy**2, axis=2))
     return emap
 
 def gen_smap (emap):
