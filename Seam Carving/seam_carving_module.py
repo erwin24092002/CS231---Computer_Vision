@@ -1,25 +1,19 @@
 import cv2
 import numpy as np
 import imutils
+from scipy import ndimage as ndi
 from visual_process_module import visual_1seam 
 
 def gen_emap (img):
     """
+    Gradient magnitude energy map
     input: an image
     output: an energy map of image
     """ 
-    filter = np.array(
-        [[1, 0, -1],
-         [2, 0, -2],
-         [1, 0, -1]]
-    )
-    temp = (img[:, :, 0]*1/3 + img[:, :, 1]*1/3 + img[:, :, 2]*1/3).astype(np.uint8)
-    h, w = temp.shape 
-    result1 = cv2.filter2D(temp, -1, filter)
-    result2 = cv2.filter2D(temp, -1, filter.T)
-    result3 = cv2.filter2D(temp, -1, -filter)
-    result4 = cv2.filter2D(temp, -1, -filter.T)
-    return result1 + result2 + result3 + result4
+    xgrad = ndi.convolve1d(img, np.array([1, 0, -1]), axis=1, mode='wrap')
+    ygrad = ndi.convolve1d(img, np.array([1, 0, -1]), axis=0, mode='wrap')
+    emap = np.sqrt(np.sum(xgrad**2, axis=2) + np.sum(ygrad**2, axis=2))
+    return emap
 
 def gen_smap (emap):
     """
