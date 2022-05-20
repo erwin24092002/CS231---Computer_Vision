@@ -2,6 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 import imageio 
 import numpy as np
+from numba import jit
 import imutils
 from tqdm import tqdm
 from scipy import ndimage as ndi 
@@ -9,17 +10,13 @@ from scipy import ndimage as ndi
 REMOVAL_SEAM_COLOR = np.array([0, 0, 255])  # Color of seam when visualizing
 INSERTED_SEAM_COLOR = np.array([0, 255, 0])  # Color of seam when visualizing
 
+
 class SeamCarving:
-    def __init__(self, img, protective_mask=None, removal_mask=None):
+    def __init__(self, img):
         self.img = img 
-        self.protective_mask = protective_mask
-        self.removal_mask = removal_mask
         
         self.new_img = np.zeros_like(img)
         self.new_img[:] = img[:] 
-        
-        self.init_emap = self.gen_emap()
-        self.init_smap = self.gen_smap(self.init_emap)
         
         self.sliders = []   # Stages in the processing process
         
@@ -27,6 +24,7 @@ class SeamCarving:
     #########################################################################
     #                  PROCESS FUNCTION
     #########################################################################
+    @jit
     def gen_emap(self):
         """
         Generate an nergy map using Gradient magnitude
@@ -35,9 +33,10 @@ class SeamCarving:
         """ 
         Gx = ndi.convolve1d(self.new_img, np.array([1, 0, -1]), axis=1, mode='wrap')
         Gy = ndi.convolve1d(self.new_img, np.array([1, 0, -1]), axis=0, mode='wrap')
-        emap = np.sqrt(np.sum(Gx**2, axis=2) + np.sum(Gy**2, axis=2)).astype(np.uint8)
+        emap = np.sqrt(np.sum(Gx**2, axis=2) + np.sum(Gy**2, axis=2))
         return emap
     
+    @jit
     def gen_smap(self, emap):
         """
         Input: 
@@ -46,18 +45,19 @@ class SeamCarving:
             arr(h x w) - a seam map (smap) of energy map
         """ 
         h, w = emap.shape 
-        smap = np.zeros(shape=(h, w)).astype(np.int64)
+        smap = np.zeros(shape=(h, w))
         smap[0, :] = emap[0, :]
         for i in range(1, h):
             for j in range(0, w):
-                if j-1 < 0:
+                if j == 0:
                     smap[i, j] = min(smap[i-1, j:j+2]) + emap[i, j]
-                elif j+1 > w-1:
+                elif j == w-1:
                     smap[i, j] = min(smap[i-1, j-1:j+1]) + emap[i, j]
                 else: 
                     smap[i, j] = min(smap[i-1, j-1:j+2]) + emap[i, j]
         return smap
-        
+    
+    @jit
     def get_minimum_seam(self, emap):
         """
         Input: 
@@ -74,15 +74,16 @@ class SeamCarving:
         index = np.argmin(smap[h-1, :])
         seam.append(index)
         for i in range(h-1, 0, -1):
-            if index-1 < 0:
+            if index == 0:
                 index = index + np.argmin(smap[i, index:index+2])
-            elif index+1 > w-1:
+            elif index == w-1:
                 index = index - 1 +  np.argmin(smap[i, index-1:index+1])
             else: 
                 index = index - 1 + np.argmin(smap[i, index-1:index+2])
             seam.append(index)
         return np.array(seam)[::-1]
     
+    @jit
     def remove_seam(self, seam):
         """
         Input:
@@ -98,6 +99,7 @@ class SeamCarving:
         new_img = new_img.astype(np.uint8)
         return new_img
     
+    @jit
     def insert_seam(self, seam):
         """
         Input:
@@ -115,13 +117,14 @@ class SeamCarving:
             elif seam[i] == w-1:
                 new_img[i, seam[i], :] = self.new_img[i, seam[i]-1, :]
             else:
-                new_img[i, seam[i], :] = np.average(self.new_img[i, seam[i]-1: seam[i]+2, :], axis=0)
-                # new_img[i, seam[i], :] = ((self.new_img[i, seam[i]-1, :]).astype(np.uint32) + 
-                #                           (self.new_img[i, seam[i]+1, :]).astype(np.uint32)) / 3
+                new_img[i, seam[i], :] = (self.new_img[i, seam[i]-1, :].astype(np.int32)
+                                          + self.new_img[i, seam[i]+1, :].astype(np.int32)) / 2
         new_img = new_img.astype(np.uint8)
         return new_img
     
+    @jit
     def resize(self, new_size=(0, 0)): 
+        self.new_img[:] = self.img[:]
         h, w, c = self.new_img.shape
         new_h, new_w = new_size
         delta_h = new_h - h
@@ -166,10 +169,43 @@ class SeamCarving:
         new_img[:] = self.new_img[:]
         return new_img
     
+    @jit 
+    def resize_with_mask(self, protective_mask):
+        pass
+    
+    @jit
+    def remove_object(self, removal_mask):
+        self.mask = np.zeros_like(removal_mask)
+        self.mask[:]  = removal_mask[:]
+        
+        dmask = len(set(np.where(self.mask.T==255)[0]))
+        for i in tqdm(range(dmask), desc='Removing Object'):
+            emap = self.gen_emap()
+            emap = np.where((self.mask==255), -1000, emap)
+            seam = self.get_minimum_seam(emap)
+            
+            h, w = self.mask.shape 
+            new_mask = np.zeros(shape=(h, w-1))
+            for i in range(0, h):
+                new_mask[i, :seam[i]] = self.mask[i, :seam[i]]
+                new_mask[i, seam[i]:] = self.mask[i, seam[i]+1:]
+            self.mask = new_mask
+            self.sliders.append(self.visual_seam(seam, color=REMOVAL_SEAM_COLOR))
+            cv2.imwrite('test.png', self.visual_seam(seam, color=REMOVAL_SEAM_COLOR))
+            self.new_img = self.remove_seam(seam)
+        for i in tqdm(range(dmask), desc='Regaining Original Size'):
+            emap = self.gen_emap()
+            seam = self.get_minimum_seam(emap)
+            self.new_img = self.insert_seam(seam)
+            self.sliders.append(self.visual_seam(seam, color=INSERTED_SEAM_COLOR))
+            cv2.imwrite('test.png', self.visual_seam(seam, color=REMOVAL_SEAM_COLOR))
+            
+        return self.new_img
     
     #########################################################################
     #                  VISUALIZATION
     #########################################################################
+    @jit
     def visual_seam(self, seam, color=REMOVAL_SEAM_COLOR):
         """
         Input:
@@ -214,10 +250,8 @@ class SeamCarving:
         """
         img = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
         result = cv2.cvtColor(self.new_img, cv2.COLOR_BGR2RGB)
-        plt.subplot(2, 2, 1), plt.imshow(img, cmap='gray'), plt.title("Image ({0};{1})".format(img.shape[0], img.shape[1]))
-        plt.subplot(2, 2, 2), plt.imshow(self.init_emap, cmap='gray'), plt.title('Energy map')
-        plt.subplot(2, 2, 3), plt.imshow(self.init_smap, cmap='gray'), plt.title('Seam Map')
-        plt.subplot(2, 2, 4), plt.imshow(result, cmap='gray'), plt.title("Resized Image ({0};{1})".format(result.shape[0], result.shape[1]))
+        plt.subplot(1, 2, 1), plt.imshow(img, cmap='gray'), plt.title("Image ({0};{1})".format(img.shape[0], img.shape[1]))
+        plt.subplot(1, 2, 2), plt.imshow(result, cmap='gray'), plt.title("Resized Image ({0};{1})".format(result.shape[0], result.shape[1]))
         if save_path != '':
             plt.savefig(save_path)
         plt.show()
