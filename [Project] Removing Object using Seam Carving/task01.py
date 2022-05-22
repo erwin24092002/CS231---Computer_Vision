@@ -6,3 +6,4 @@ def hello(arg):
     Returns:
         _type_: _description_
     """
+    print("hello world")
