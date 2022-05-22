@@ -9,3 +9,4 @@ def hello(arg):
     print("hello world")
     print("hello")
     print('hi')
+    print('thang')
