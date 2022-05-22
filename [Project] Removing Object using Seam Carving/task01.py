@@ -7,3 +7,5 @@ def hello(arg):
         _type_: _description_
     """
     print("hello world")
+    print("hello")
+    print('hi')
