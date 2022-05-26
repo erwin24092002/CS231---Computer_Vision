@@ -10,3 +10,4 @@ def hello(arg):
     print("hello")
     print('hi')
     print('thang')
+    print('hello')
