@@ -6,8 +6,4 @@ def hello(arg):
     Returns:
         _type_: _description_
     """
-    print("hello world")
-    print("hello")
-    print('hi')
-    print('thang')
-    print('hello')
+    
