@@ -14,11 +14,4 @@ def gen_emap(self):
     # find a energy map that has detected the edge
     emap = np.sqrt(np.sum(Gx**2, axis=2) + np.sum(Gy**2, axis=2))
     return emap
-
-
-   
-
-       
-       
-
  
