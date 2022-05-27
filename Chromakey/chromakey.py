@@ -1,3 +1,4 @@
+from turtle import back
 import cv2
 import numpy as np
 from tqdm import tqdm
@@ -54,16 +55,24 @@ class Chromakey:
         sigma = np.sqrt(var)
         
         threshold = []
-        threshold.append(mean - 2*sigma)
-        threshold.append(mean + 2*sigma)
+        threshold.append(mean - 2.5*sigma)
+        threshold.append(mean + 2.5*sigma)
         return threshold
     
-    def separate_background(self):
+    def apply_background(self, background = None):
         new_img = self.img.copy()
         rois = self.get_rois()
         threshold = self.get_threshold(rois)
         mask = cv2.inRange(new_img, threshold[0], threshold[1])      
-        new_img[mask!=0] = np.array([0, 0, 0])  
+        if background is None:
+            new_img[mask!=0] = np.array([0, 0, 0])  
+        else:
+            h, w, _ = new_img.shape
+            new_background = cv2.resize(background, (w, h))
+            for i in range(h):
+                for j in range(w):
+                    if(mask[i, j] != 0):
+                        new_img[i, j, :] = new_background[i, j, :]
         return new_img.copy()
             
         
