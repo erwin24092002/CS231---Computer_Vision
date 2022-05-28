@@ -5,7 +5,7 @@ def ChooseArea(img = None):
         img: Input image. Defaults to None.
 
     Returns:
-        Nothing
+        mask: 2D Binary mask. 
     """
     import pygame
     import cv2
@@ -63,7 +63,7 @@ def ChooseArea(img = None):
                 cv2.fillConvexPoly(mask, npar, 1)
                             
                 # WE GOT THE MASK!!! DO ANYTHING WITH IT
-                cv2.imshow('out', mask)
+                cv2.imshow('mask', mask)
                 cv2.waitKey(0)
                 #######################################
                 pts = []
@@ -71,3 +71,4 @@ def ChooseArea(img = None):
 
         pygame.display.update()
         clock.tick(fps)
+    return mask
