@@ -38,13 +38,11 @@ def ChooseArea(img = None):
     mask = np.zeros((img.shape[0], img.shape[1]))
 
     while start:
-        window.blit(background_surf, (0, 0))
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 start = False
                 pygame.quit()
-                break
+                return mask
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 flag = True
                 print("Down")
@@ -68,7 +66,7 @@ def ChooseArea(img = None):
                 #######################################
                 pts = []
                 flag = False
-
+                
+        window.blit(background_surf, (0, 0))
         pygame.display.update()
         clock.tick(fps)
-    return mask
