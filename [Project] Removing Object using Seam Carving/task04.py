@@ -1,13 +1,15 @@
-def get_minimum_seam(self,emap):
-    """_summary_
+def get_minimum_seam(smap):
+    """ This function get the minimum seam of the image through a seam map .
     Args:
-        array (h x w): matrix energy map.
+        smap : a seam map of image
 
     Returns:
-        array (h): a array has index of minimum energy seam of energy map
+        seam : a array has index of minimum energy seam of energy map
     """
+    import numpy as np
+    import cv2
+
     # Generate seam map
-    smap = self.gen_smap(emap) 
     
     # Get seam
     seam = []
@@ -24,4 +26,4 @@ def get_minimum_seam(self,emap):
         else: # else we only consider min from index-1 to index +1
             index = index - 1 + np.argmin(smap[i, index-1:index+2])
         seam.append(index) # add idex of pixel has minimun seam energy
-        
+    return np.array(seam)[::-1]
