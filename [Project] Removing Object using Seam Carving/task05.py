@@ -1,14 +1,17 @@
-def remove_seam(self,seam):
-    """_summary_
+def remove_seam(img,seam):
+    """ This function remove the minimun seam of the image to reduce the image width
     Args:
-        array (h): a array has index of minimum energy seam of energy map.
+        img : an image need remove seam
+        seam : a array has index of minimum energy seam of the image need remove seam.
 
     Returns:
-        array (h x w-1 x c): an image after remove the minimun seam 
+        new_img: an new image after remove seam 
     """
+    import numpy as np
+    import cv2
 
-    h, w, c = self.new_img.shape
-    new_img = self.new_img.copy()
+    h, w, c = img.shape
+    new_img = img.copy()
     mask = np.ones((h, w), dtype=np.bool_)
     # get mask has minimun seam to remove
     for i in range(0,h):
