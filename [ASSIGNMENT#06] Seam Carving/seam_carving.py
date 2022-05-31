@@ -59,11 +59,11 @@ class SeamCarving:
     
     @jit
     def get_minimum_seam(self, emap):
-        """
+        """Get a minimum energy seam from emap
         Input: 
-            arr(h x w) - energy map
+            np.array(h x w): a energy map
         Function return:
-            arr(h) - a minimum energy seam of energy map
+            np.array(h): a minimum energy seam of energy map
         """
         # Generate seam map
         smap = self.gen_smap(emap) 
@@ -73,7 +73,7 @@ class SeamCarving:
         h, w = smap.shape
         index = np.argmin(smap[h-1, :])
         seam.append(index)
-        for i in range(h-1, 0, -1):
+        for i in range(h-2, -1, -1):
             if index == 0:
                 index = index + np.argmin(smap[i, index:index+2])
             elif index == w-1:
